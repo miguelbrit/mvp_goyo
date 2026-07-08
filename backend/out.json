@@ -1,0 +1,19 @@
+{
+  "data": [
+    {
+      "id": "8f7b060b-38bc-413c-b6b2-3bc3e084b77f",
+      "business_name": "Farmacia Goyo Salud Actualizada",
+      "address": "Nueva dirección av bolivar",
+      "city": "Miranda",
+      "openingHours": null,
+      "closingHours": null,
+      "description": null,
+      "Profile": {
+        "name": "Farmacia Goyo Salud Actualizada",
+        "Patient": [],
+        "image_url": null
+      }
+    }
+  ],
+  "error": null
+}

@@ -1,0 +1,3 @@
+// DEPRECATED: This file has been deprecated and replaced by UserTypeSelection.tsx
+export const LoginSimulado = () => null;
+export default LoginSimulado;
