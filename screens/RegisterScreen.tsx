@@ -8,6 +8,7 @@ import {
   Scale, Ruler, DollarSign, Clock, Truck 
 } from 'lucide-react';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
+import { syncSupabaseSession } from '../supabase';
 
 type UserRole = 'patient' | 'doctor' | 'pharmacy' | 'lab' | 'admin';
 
@@ -120,6 +121,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ role, onBack, on
       if (!response.ok || !data.success) throw new Error(data.error || 'Error al registrar usuario');
 
       localStorage.setItem('token', data.token);
+      await syncSupabaseSession();
       setLoading(false);
       onSubmit(data.user.role || role, name || data.user.name || 'Usuario');
     } catch (err: any) {

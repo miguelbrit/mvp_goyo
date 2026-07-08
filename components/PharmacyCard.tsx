@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ShoppingCart, CheckCircle, XCircle, Star } from 'lucide-react';
+import { MapPin, ShoppingCart, CheckCircle, XCircle, Star, Truck } from 'lucide-react';
 import { Pharmacy } from '../types';
 
 interface PharmacyCardProps {
@@ -19,12 +19,16 @@ export const PharmacyCard: React.FC<PharmacyCardProps> = ({ pharmacy, onClick, h
       onClick={onClick}
       className={`bg-card rounded-2xl shadow-soft border border-border-main overflow-hidden transition-all hover:shadow-md ${onClick ? 'cursor-pointer' : ''}`}
     >
-      <div className="relative h-32">
-        <img 
-          src={pharmacy.image} 
-          alt={pharmacy.name} 
-          className="w-full h-full object-cover"
-        />
+      <div className="relative h-32 bg-gray-100 flex items-center justify-center">
+        {pharmacy.image ? (
+          <img 
+            src={pharmacy.image} 
+            alt={pharmacy.name} 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="text-gray-400 font-bold text-4xl uppercase tracking-widest">{pharmacy.name.charAt(0)}</div>
+        )}
         <div className="absolute top-3 right-3">
           {pharmacy.isOpen ? (
             <span className="bg-card/90 backdrop-blur-sm text-green-500 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm border border-border-main">
@@ -36,12 +40,18 @@ export const PharmacyCard: React.FC<PharmacyCardProps> = ({ pharmacy, onClick, h
             </span>
           )}
         </div>
-        <div className="absolute bottom-3 left-3">
+          <div className="absolute bottom-3 left-3 flex gap-1.5">
            <div className="bg-card/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm border border-border-main">
               <Star size={12} className="text-yellow-400 fill-yellow-400" />
               <span className="text-xs font-bold text-text-main">{pharmacy.rating}</span>
            </div>
-        </div>
+           {pharmacy.services && pharmacy.services.length > 0 && (
+             <div className="bg-primary/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm border border-primary/30">
+               <Truck size={12} className="text-white" />
+               <span className="text-[10px] font-bold text-white truncate max-w-[80px]">{pharmacy.services[0]}</span>
+             </div>
+           )}
+          </div>
       </div>
       
       <div className="p-4">

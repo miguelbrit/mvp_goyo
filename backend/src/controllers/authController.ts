@@ -15,11 +15,26 @@ export const register = async (req: Request, res: Response) => {
     const normalizedEmail = email.toLowerCase().trim();
 
     // 1. Create user in Supabase Auth (admin bypasses email confirmation if configured)
+    const roleMapping: Record<string, string> = {
+      'Paciente': 'patient',
+      'Medico': 'doctor',
+      'Farmacia': 'pharmacy',
+      'Laboratorio': 'lab',
+      'Admin': 'admin'
+    };
+    const role = roleMapping[type] || 'patient';
+    const isVerified = (type === 'Paciente' || type === 'Admin');
+
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: normalizedEmail,
       password: password,
       email_confirm: true,
-      user_metadata: { name, type }
+      user_metadata: { 
+        name, 
+        type,
+        role,
+        is_verified: isVerified
+      }
     });
 
     if (authError) throw authError;
@@ -261,9 +276,11 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
 
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   const { 
-    name, surname, imageUrl, 
+    name, surname, imageUrl, image_url,
     birthDate, gender, weight, height, phone, address, city, country, bloodType, allergies, healthStatus
   } = req.body;
+
+  const finalImageUrl = imageUrl || image_url;
 
   try {
     const userId = req.user?.id;
@@ -275,10 +292,11 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     const updateData: any = {};
     if (name) updateData.name = name;
     if (surname !== undefined) updateData.surname = surname;
-    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+    if (finalImageUrl !== undefined) updateData.imageUrl = finalImageUrl;
     if (weight) updateData.weight = parseFloat(weight.toString());
     if (height) updateData.height = parseFloat(height.toString());
     if (healthStatus !== undefined) updateData.healthStatus = healthStatus;
+    if (phone !== undefined) updateData.phone = phone; 
 
     const updatedProfile = await prisma.profile.update({
       where: { id: userId },
@@ -376,29 +394,61 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         }
       }
     } else if (updatedProfile.type === 'Farmacia') {
-      const { businessName, address, city, openingHours, closingHours, hasDelivery } = req.body;
-      await (prisma.pharmacy as any).update({
+      const { businessName, address: pharmAddress, city: pharmCity, openingHours, closingHours, hasDelivery, phone: pharmacyPhone } = req.body;
+      const finalBusinessName = businessName || name;
+      
+      await (prisma.pharmacy as any).upsert({
         where: { profileId: userId },
-        data: {
-          businessName: businessName || name,
-          address,
-          city,
+        update: {
+          businessName: finalBusinessName,
+          address: pharmAddress || address,
+          city: pharmCity || city,
           openingHours,
           closingHours,
+          phone: pharmacyPhone || phone,
+          imageUrl: finalImageUrl,
           hasDelivery: hasDelivery !== undefined ? (hasDelivery === true || hasDelivery === 'true') : undefined
+        },
+        create: {
+          profileId: userId,
+          businessName: finalBusinessName,
+          address: pharmAddress || address,
+          city: pharmCity || city,
+          openingHours,
+          closingHours,
+          phone: pharmacyPhone || phone,
+          imageUrl: finalImageUrl,
+          hasDelivery: hasDelivery !== undefined ? (hasDelivery === true || hasDelivery === 'true') : false,
+          status: 'PENDING'
         }
       });
     } else if (updatedProfile.type === 'Laboratorio') {
-      const { businessName, address, city, testTypes, openingHours, closingHours } = req.body;
-      await (prisma.laboratory as any).update({
+      const { businessName, address: labAddress, city: labCity, testTypes, openingHours, closingHours, phone: labPhone } = req.body;
+      const finalBusinessName = businessName || name;
+
+      await (prisma.laboratory as any).upsert({
         where: { profileId: userId },
-        data: {
-          businessName: businessName || name,
-          address,
-          city,
+        update: {
+          businessName: finalBusinessName,
+          address: labAddress || address,
+          city: labCity || city,
           testTypes,
           openingHours,
-          closingHours
+          closingHours,
+          phone: labPhone || phone,
+          imageUrl: finalImageUrl
+        },
+        create: {
+          profileId: userId,
+          businessName: finalBusinessName,
+          address: labAddress || address,
+          city: labCity || city,
+          testTypes,
+          openingHours,
+          closingHours,
+          phone: labPhone || phone,
+          imageUrl: finalImageUrl,
+          status: 'PENDING'
         }
       });
     }

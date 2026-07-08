@@ -29,9 +29,10 @@ model Profile {
   imageUrl     String?   @map("image_url")
   weight       Float?
   height       Float?
+  phone        String?
   healthStatus String?   @map("health_status")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relationships
   patient      Patient?
@@ -48,7 +49,7 @@ model Patient {
   id          String   @id @default(uuid())
   profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   profileId   String   @unique @map("profile_id")
-  birthDate   DateTime?
+  birthDate   DateTime? @map("birthDate")
   gender      String?
   weight      Float?
   height      Float?
@@ -56,9 +57,9 @@ model Patient {
   address     String?
   city        String?
   country     String?  @default("Venezuela")
-  bloodType   String?
+  bloodType   String?  @map("bloodType")
   allergies   String?
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
   appointments Appointment[]
 }
 
@@ -69,14 +70,15 @@ model Doctor {
   specialty            String?
   license              String?
   bio                  String?            @db.Text
-  experienceYears      Int?               @default(0)
-  consultationPrice    Float?             @default(0)
-  insuranceAffiliations String?
+  experienceYears      Int?               @default(0) @map("experienceYears")
+  consultationPrice    Float?             @default(0) @map("consultationPrice")
+  insuranceAffiliations String?           @map("insuranceAffiliations")
   city                 String?
   address              String?
   status               VerificationStatus @default(PENDING)
   identityDocUrl       String?            @map("identity_doc_url")
   professionalTitleUrl String?            @map("professional_title_url")
+  imageUrl             String?            @map("image_url")
   slotDuration         Int?               @default(30) @map("slot_duration")
   availability         Availability[]
   appointments         Appointment[]
@@ -102,9 +104,11 @@ model Pharmacy {
   description  String?  @db.Text
   address      String?
   city         String?
-  openingHours String?
-  closingHours String?
-  hasDelivery  Boolean? @default(false)
+  openingHours String?  @map("openingHours")
+  closingHours String?  @map("closingHours")
+  hasDelivery  Boolean? @default(false) @map("hasDelivery")
+  imageUrl     String?  @map("image_url")
+  phone        String?
   status       VerificationStatus @default(PENDING)
 }
 
@@ -113,12 +117,14 @@ model Laboratory {
   profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   profileId    String   @unique @map("profile_id")
   businessName String?  @map("business_name")
-  testTypes    String?  @db.Text
+  testTypes    String?  @db.Text @map("testTypes")
   description  String?  @db.Text
   address      String?
   city         String?
-  openingHours String?
-  closingHours String?
+  openingHours String?  @map("openingHours")
+  closingHours String?  @map("closingHours")
+  imageUrl     String?  @map("image_url")
+  phone        String?
   status       VerificationStatus @default(PENDING)
 }
 

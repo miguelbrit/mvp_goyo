@@ -37,7 +37,7 @@ export interface Pharmacy {
   id: string;
   name: string;
   address?: string;
-  location: string; // City
+  location: string;
   rating: number;
   reviews: number;
   image: string;
@@ -50,6 +50,8 @@ export interface Pharmacy {
   inventory?: Medicament[];
   phone?: string;
   hours?: string;
+  description?: string;
+  services?: string[];
 }
 
 export interface LabService {

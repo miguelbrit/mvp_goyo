@@ -61,26 +61,17 @@ export const BookingModule: React.FC<BookingModuleProps> = ({
     return doctorData.availability.find(a => a.dayOfWeek === date.getDay() && a.isActive);
   };
 
-  // NORMALIZE DATE FOR COMPARISON (YYYY-MM-DD)
   const getFormattedDate = (date: Date) => date.toISOString().split('T')[0];
 
   const generateTimeSlots = (date: Date) => {
     const config = getDayAvailability(date);
     
-    // DEBUG LOGS AS REQUESTED
-    console.log('[DEBUG] Día seleccionado (Paso 1):', getFormattedDate(date), `(${daysInWeek[date.getDay()]})`);
-    console.log('[DEBUG] Todos los datos de disponibilidad (Paso 2):', doctorData?.availability);
-
-    if (!config || !doctorData) {
-      console.log('[DEBUG] Horas resultantes tras filtrar (Paso 3): [] (Sin configuración para este día)');
-      return [];
-    }
+    if (!config || !doctorData) return [];
 
     const slots: string[] = [];
     const [startH, startM] = config.startTime!.split(':').map(Number);
     const [endH, endM] = config.endTime!.split(':').map(Number);
     
-    // Ensure we start from a clean slate for the selected day
     let current = new Date(date);
     current.setHours(startH, startM, 0, 0);
     
@@ -91,7 +82,6 @@ export const BookingModule: React.FC<BookingModuleProps> = ({
     const now = new Date();
 
     while (current < end) {
-      // Basic check: if today, only show future slots
       if (current.getTime() > now.getTime()) {
         const timeStr = current.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
@@ -99,10 +89,8 @@ export const BookingModule: React.FC<BookingModuleProps> = ({
           hour12: true 
         }).toUpperCase();
         
-        // Match existing appointments (Conflict detection)
         const isTaken = appointments.some(appt => {
           const apptDate = new Date(appt.date);
-          // Normalize comparison at the timestamp level
           return apptDate.getTime() === current.getTime() && appt.status !== 'cancelled';
         });
 
@@ -113,13 +101,12 @@ export const BookingModule: React.FC<BookingModuleProps> = ({
       current.setMinutes(current.getMinutes() + duration);
     }
 
-    console.log('[DEBUG] Horas resultantes tras filtrar (Paso 3):', slots);
     return slots;
   };
 
   const next14Days = Array.from({ length: 14 }).map((_, i) => {
     const d = new Date();
-    d.setHours(0, 0, 0, 0); // Normalize to start of day for cleaner iteration
+    d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + i);
     return d;
   });
@@ -137,7 +124,6 @@ export const BookingModule: React.FC<BookingModuleProps> = ({
         </span>
       </div>
 
-      {/* Date Selector */}
       <div className="flex gap-3 overflow-x-auto py-2 no-scrollbar scroll-smooth">
         {next14Days.map((date, i) => {
           const isSelected = selectedDate.toDateString() === date.toDateString();
@@ -168,7 +154,6 @@ export const BookingModule: React.FC<BookingModuleProps> = ({
         })}
       </div>
 
-      {/* Time Slots grid */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Clock size={16} className="text-gray-light" />
@@ -210,7 +195,6 @@ export const BookingModule: React.FC<BookingModuleProps> = ({
         )}
       </div>
 
-      {/* Info Card if slot selected */}
       {selectedTime && (
         <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl animate-in zoom-in-95 duration-200">
           <div className="flex justify-between items-center">

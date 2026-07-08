@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, BookOpen, AlertCircle } from 'lucide-react';
 import { Article } from '../types';
 
@@ -103,32 +103,61 @@ const SUGGESTED_ARTICLES_DB: Article[] = [
     views: 320,
     image: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&q=80&w=300'
   },
-  {
-    id: 'l3',
-    title: 'Pruebas de Orina: Tips',
-    subtitle: 'Cómo recolectar la muestra correctamente para evitar errores.',
-    category: 'Laboratorio',
-    specialty: 'Bioanalista',
-    author: 'VidaLab',
-    status: 'published',
-    publishDate: '2024-04-25',
-    views: 110,
-    image: 'https://images.unsplash.com/photo-1628348068343-c6a848d2b6dd?auto=format&fit=crop&q=80&w=300'
-  }
-];
+   {
+     id: 'l3',
+     title: 'Pruebas de Orina: Tips',
+     subtitle: 'Cómo recolectar la muestra correctamente para evitar errores.',
+     category: 'Laboratorio',
+     specialty: 'Bioanalista',
+     author: 'VidaLab',
+     status: 'published',
+     publishDate: '2024-04-25',
+     views: 110,
+     image: 'https://images.unsplash.com/photo-1628348068343-c6a848d2b6dd?auto=format&fit=crop&q=80&w=300'
+   },
+   {
+     id: 'g1',
+     title: 'El impacto del sueño en la salud cardiovascular',
+     subtitle: 'Descubre por qué dormir 8 horas es tan importante como hacer ejercicio para mantener tu corazón fuerte.',
+     category: 'Bienestar',
+     specialty: 'Cardiólogo',
+     author: 'Dra. Valentina Soto',
+     status: 'published',
+     publishDate: '2024-06-01',
+     views: 250,
+     image: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&q=80&w=300'
+   },
+   {
+     id: 'g2',
+     title: 'Nutrición preventiva: Alimentos que fortalecen tu sistema inmune',
+     subtitle: 'Una guía práctica sobre las vitaminas esenciales y dónde encontrarlas en tu dieta diaria venezolana.',
+     category: 'Nutrición',
+     specialty: 'Nutricionista',
+     author: 'Dr. Javier Ríos',
+     status: 'published',
+     publishDate: '2024-06-05',
+     views: 180,
+     image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=300'
+   }
+  ];
 
 interface SuggestedArticlesProps {
   section: 'doctors' | 'pharmacy' | 'labs';
   onArticleClick?: (article: Article) => void;
+  autoSlide?: boolean;
 }
 
-export const SuggestedArticles: React.FC<SuggestedArticlesProps> = ({ section, onArticleClick }) => {
+export const SuggestedArticles: React.FC<SuggestedArticlesProps> = ({ 
+  section, 
+  onArticleClick,
+  autoSlide = false 
+}) => {
   
   // Logic to filter articles based on section
   const getRelevantArticles = () => {
     switch (section as any) {
       case 'general':
-        return SUGGESTED_ARTICLES_DB.filter((_, i) => i % 3 === 0).slice(0, 5); // Mix of articles
+        return SUGGESTED_ARTICLES_DB.slice(0, 3).concat(SUGGESTED_ARTICLES_DB.slice(-2));
       case 'doctors':
         return SUGGESTED_ARTICLES_DB.filter(art => 
           ['Cardiología', 'Medicina General', 'Neurología', 'Pediatría', 'Ginecología'].includes(art.category)
@@ -148,6 +177,38 @@ export const SuggestedArticles: React.FC<SuggestedArticlesProps> = ({ section, o
 
   const articles = getRelevantArticles();
 
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [cardStep, setCardStep] = useState(344);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!autoSlide || articles.length === 0) return;
+
+    const measureStep = () => {
+      const card = trackRef.current?.querySelector('[data-article-card]');
+      if (card && trackRef.current) {
+        const cardWidth = (card as HTMLElement).offsetWidth;
+        const parentStyle = getComputedStyle(trackRef.current);
+        const gap = parseFloat(parentStyle.gap) || 24;
+        setCardStep(cardWidth + gap);
+      }
+    };
+
+    measureStep();
+    window.addEventListener('resize', measureStep);
+    return () => window.removeEventListener('resize', measureStep);
+  }, [autoSlide, articles.length]);
+
+  useEffect(() => {
+    if (!autoSlide || articles.length === 0) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev >= articles.length - 1 ? 0 : prev + 1));
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [autoSlide, articles.length]);
+
   if (articles.length === 0) {
     return (
       <div className="bg-gray-bg border border-border-main rounded-2xl p-6 text-center mx-4 mb-20 transition-colors">
@@ -164,51 +225,72 @@ export const SuggestedArticles: React.FC<SuggestedArticlesProps> = ({ section, o
       <div className="flex items-center gap-2 mb-4 pr-4">
         <BookOpen size={18} className="text-primary" />
         <h3 className="font-heading font-bold text-lg text-text-main">
-          {section === 'doctors' ? 'Lecturas Médicas' : 
-           section === 'pharmacy' ? 'Consejos Farmacéuticos' : 
-           (section as any) === 'general' ? 'Lecturas Recomendadas' :
-           'Información de Laboratorio'}
+           {section === 'doctors' ? 'Lecturas Médicas' : 
+            section === 'pharmacy' ? 'Consejos Farmacéuticos' : 
+            (section as any) === 'general' ? 'Artículos de Opinión' :
+            'Información de Laboratorio'}
         </h3>
       </div>
 
-      <div className="flex overflow-x-auto pb-6 gap-4 pr-4 snap-x hide-scrollbar">
-        {articles.map((article) => (
-          <div 
-            key={article.id}
-            onClick={() => onArticleClick && onArticleClick(article)}
-            className="min-w-[260px] max-w-[260px] bg-card rounded-2xl border border-border-main shadow-sm hover:shadow-md transition-all snap-center flex flex-col overflow-hidden group cursor-pointer"
-          >
-            {/* Image */}
-            <div className="h-32 w-full overflow-hidden relative">
-               <img 
-                 src={article.image} 
-                 alt={article.title} 
-                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-               />
-               <div className="absolute top-2 left-2 bg-card/90 backdrop-blur-sm px-2 py-0.5 rounded-md text-[10px] font-bold text-primary uppercase border border-border-main">
-                  {article.category}
-               </div>
-            </div>
+      <div className={autoSlide ? 'overflow-hidden' : ''}>
+        <div 
+          ref={trackRef}
+          className={`flex gap-6 ${autoSlide ? 'transition-transform duration-500 ease-in-out' : 'overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide pr-4'}`}
+          style={autoSlide ? { transform: `translateX(-${currentIndex * cardStep}px)` } : undefined}
+        >
+          {articles.map((article) => (
+            <div 
+              key={article.id}
+              data-article-card
+              onClick={() => onArticleClick && onArticleClick(article)}
+              className="w-80 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col group cursor-pointer hover:shadow-md transition-all flex-shrink-0"
+            >
+              {/* Image */}
+              <div className="h-32 w-full overflow-hidden relative">
+                 <img 
+                   src={article.image} 
+                   alt={article.title} 
+                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                 />
+                 <div className="absolute top-2 left-2 bg-card/90 backdrop-blur-sm px-2 py-0.5 rounded-md text-[10px] font-bold text-primary uppercase border border-border-main">
+                    {article.category}
+                 </div>
+              </div>
 
-            {/* Content */}
-            <div className="p-4 flex flex-col flex-1">
-               <h4 className="font-bold text-text-main leading-tight mb-2 line-clamp-2">
-                 {article.title}
-               </h4>
-               <p className="text-xs text-gray-light line-clamp-2 mb-4 flex-1">
-                 {article.subtitle}
-               </p>
-               
-               <div className="flex items-center justify-between mt-auto pt-3 border-t border-border-main">
-                  <span className="text-[10px] text-gray-light font-medium">Por {article.author}</span>
-                  <button className="text-xs font-bold text-secondary flex items-center gap-1 group-hover:gap-2 transition-all">
-                    Ver más <ChevronRight size={12} />
-                  </button>
-               </div>
+              {/* Content */}
+              <div className="p-4 flex flex-col flex-1">
+                 <h4 className="font-bold text-text-main leading-tight mb-2 line-clamp-2">
+                   {article.title}
+                 </h4>
+                 <p className="text-xs text-gray-light line-clamp-2 mb-4 flex-1">
+                   {article.subtitle}
+                 </p>
+                 
+                 <div className="flex items-center justify-between mt-auto pt-3 border-t border-border-main">
+                    <span className="text-[10px] text-gray-light font-medium">Por {article.author}</span>
+                    <button className="text-xs font-bold text-secondary flex items-center gap-1 group-hover:gap-2 transition-all">
+                      Ver más <ChevronRight size={12} />
+                    </button>
+                 </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+
+      {autoSlide && articles.length > 0 && (
+        <div className="flex justify-center gap-2 mt-4">
+          {articles.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              className={`h-2 rounded-full transition-all ${
+                idx === currentIndex ? 'bg-[#0D9488] w-4' : 'bg-gray-300 w-2'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

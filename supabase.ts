@@ -35,4 +35,25 @@ if (!supabaseUrl || !supabaseAnonKey) {
   // In production, we don't want to crash silently, but supabase-js will throw if these are empty.
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Enable session persistence for the browser environment
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+// Helper to check and set session from external token (e.g. from our custom API login)
+export const syncSupabaseSession = async () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || session.access_token !== token) {
+      await supabase.auth.setSession({
+        access_token: token,
+        refresh_token: '', // Custom API doesn't provide refresh tokens usually
+      });
+    }
+  }
+};

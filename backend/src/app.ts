@@ -11,17 +11,14 @@ import appointmentRoutes from './routes/appointmentRoutes.js';
 // 1. Load contextually: only use dotenv in local development
 if (process.env.NODE_ENV !== 'production') {
   try {
-    // Try to load root .env
-    const rootEnvPath = path.resolve(process.cwd(), '.env');
-    const rootEnvParentPath = path.resolve(process.cwd(), '../.env');
+    // Prioridad 1: .env local del backend
+    dotenv.config(); 
     
+    // Prioridad 2: .env en la raíz del proyecto (solo si no están en el local)
+    const rootEnvPath = path.resolve(process.cwd(), '..', '.env');
     dotenv.config({ path: rootEnvPath });
-    dotenv.config({ path: rootEnvParentPath });
-    
-    // Also load local .env if it exists
-    dotenv.config();
   } catch (e) {
-    console.log('Dotenv configuration skipped or failed');
+    console.log('Dotenv configuration failed:', e);
   }
 }
 

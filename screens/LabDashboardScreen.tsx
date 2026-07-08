@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, FlaskConical, Calendar, FileText, MessageSquare, BarChart, Settings, LogOut, 
   Bell, Menu, Search, Plus, Clock, ChevronRight, Filter, MoreVertical, CheckCircle, XCircle, AlertCircle, Upload, Loader2
 } from 'lucide-react';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
+import { ArticleCarousel } from '../components/ArticleCarousel';
 
 interface StatItem {
   label: string;
@@ -33,44 +34,27 @@ interface LabDashboardProps {
 
 type DashboardView = 'overview' | 'services' | 'appointments' | 'results' | 'chat' | 'stats' | 'settings';
 
-export const LabDashboardScreen: React.FC<LabDashboardProps> = ({ onLogout, userName: initialUserName = "Laboratorio", userProfile: initialUserProfile }) => {
+const MOCK_LAB = {
+  name: 'Lab Central',
+  email: 'contacto@labcentral.com',
+  imageUrl: '',
+  laboratory: {
+    businessName: 'Lab Central',
+    address: 'Av. San Martín, Centro',
+    city: 'Caracas',
+    status: 'VERIFIED',
+  },
+};
+
+export const LabDashboardScreen: React.FC<LabDashboardProps> = ({ onLogout, userName: initialUserName = "Lab Central", userProfile: initialUserProfile }) => {
   const [currentView, setCurrentView] = useState<DashboardView>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
-  const [profile, setProfile] = useState(initialUserProfile);
-  const [loading, setLoading] = useState(!initialUserProfile);
-  const [userName, setUserName] = useState(initialUserName);
+  const [profile] = useState(initialUserProfile || MOCK_LAB);
+  const [loading] = useState(false);
+  const [userName] = useState(initialUserName || 'Lab Central');
 
-  useEffect(() => {
-    if (!profile) fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/users/profile', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (result.success) {
-        // --- SECURITY GUARD ---
-        if (result.data.laboratory?.status !== 'VERIFIED') {
-          console.error("Access denied: Laboratory not verified");
-          onLogout();
-          return;
-        }
-        setProfile(result.data);
-        setUserName(result.data.name);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const labData = profile?.laboratory || {};
+  const labData = MOCK_LAB.laboratory;
   const city = labData.city || "Caracas";
 
   // --- Mock Data ---
@@ -265,12 +249,15 @@ export const LabDashboardScreen: React.FC<LabDashboardProps> = ({ onLogout, user
                               </div>
                            ))}
                         </div>
-                        <button onClick={() => setCurrentView('results')} className="w-full mt-4 text-sm text-gray-500 hover:text-gray-700 font-medium">Ver todos los resultados</button>
-                     </div>
-                  </div>
-               </div>
-            </div>
-          )}
+                         <button onClick={() => setCurrentView('results')} className="w-full mt-4 text-sm text-gray-500 hover:text-gray-700 font-medium">Ver todos los resultados</button>
+                      </div>
+
+                      {/* Article Carousel */}
+                      <ArticleCarousel title="Artículos de Opinión" autoSlide={true} />
+                   </div>
+                </div>
+             </div>
+           )}
 
           {currentView === 'services' && (
             <div className="animate-in fade-in slide-in-from-bottom-4">

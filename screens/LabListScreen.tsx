@@ -7,6 +7,7 @@ import { BottomNav } from '../components/BottomNav';
 import { Pagination } from '../components/Pagination';
 import { Carousel, CarouselItem } from '../components/Carousel';
 import { SuggestedArticles } from '../components/SuggestedArticles';
+import { ArticleCarousel } from '../components/ArticleCarousel';
 
 // Dummy Services
 const SERVICES: LabService[] = [
@@ -281,7 +282,7 @@ export const LabListScreen: React.FC<LabListScreenProps> = ({
         )}
 
         {/* SUGGESTED ARTICLES BANNER */}
-        <SuggestedArticles section="labs" onArticleClick={onNavigateToArticle} />
+        <ArticleCarousel title="Artículos de Opinión" autoSlide={true} onArticleClick={onNavigateToArticle} />
       </div>
 
       {/* Filter Modal - Fixed Layout */}

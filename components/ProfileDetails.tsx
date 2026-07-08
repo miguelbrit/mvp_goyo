@@ -7,21 +7,37 @@ import { Input } from './Input';
 import { Button } from './Button';
 import { Avatar } from './Avatar';
 import { supabase } from '../supabase';
+import { useAuth } from '../context/AuthContext';
 
 interface ProfileDetailsProps {
   userProfile?: any;
   onUpdate?: () => void;
 }
 
+interface FormData {
+  name: string;
+  surname: string;
+  email: string;
+  imageUrl: string;
+  phone: string;
+  birthDate: string;
+  gender: string;
+  weight: string;
+  height: string;
+  address: string;
+  city: string;
+  country: string;
+  bloodType: string;
+  allergies: string;
+}
+
 export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onUpdate }) => {
+  const { user, session, loading: authLoading, refreshSession, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
-  const user = userProfile || {};
-  const patient = user.patient || {};
-  
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     surname: '',
     email: '',
@@ -38,36 +54,122 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
     allergies: '',
   });
 
-
-  // Track if we have initialized state for the current profile to avoid overwriting user input
+  const initialDataRef = useRef<FormData | null>(null);
   const lastProfileId = useRef<string | null>(null);
 
-  // Sync state ONLY when a NEW profile is loaded (e.g., after login or initial load)
+  const fetchProfileData = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('Profile')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('[ProfileDetails] Error fetching Profile:', profileError);
+        return;
+      }
+
+      let patientData: any = null;
+      const { data: patient, error: patientError } = await supabase
+        .from('Patient')
+        .select('*')
+        .eq('profile_id', user.id)
+        .single();
+
+      if (!patientError && patient) {
+        patientData = patient;
+      }
+      
+      const newFormData: FormData = {
+        name: profileData?.name || '',
+        surname: profileData?.surname || '',
+        email: profileData?.email || '',
+        imageUrl: profileData?.image_url || '',
+        phone: patientData?.phone || '',
+        birthDate: patientData?.birthDate ? new Date(patientData.birthDate).toISOString().split('T')[0] : '',
+        gender: patientData?.gender || '',
+        weight: patientData?.weight?.toString() || '',
+        height: patientData?.height?.toString() || '',
+        address: patientData?.address || '',
+        city: patientData?.city || '',
+        country: patientData?.country || '',
+        bloodType: patientData?.bloodType || '',
+        allergies: patientData?.allergies || '',
+      };
+
+      setFormData(newFormData);
+      initialDataRef.current = { ...newFormData };
+      lastProfileId.current = profileData?.id;
+    } catch (err) {
+      console.error('[ProfileDetails] Error in fetchProfileData:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!userProfile && user && !initialDataRef.current && !loading) {
+       fetchProfileData();
+    }
+  }, [user, userProfile]);
+
   useEffect(() => {
     if (userProfile && lastProfileId.current !== userProfile.id) {
-      setFormData({
+      const patientData = userProfile.patient || {};
+      
+      const newFormData: FormData = {
         name: userProfile.name || '',
         surname: userProfile.surname || '',
         email: userProfile.email || '',
-        imageUrl: userProfile.imageUrl || '',
-        phone: userProfile.patient?.phone || '',
-        birthDate: (() => {
-          if (!userProfile.patient?.birthDate) return '';
-          const d = new Date(userProfile.patient.birthDate);
-          return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
-        })(),
-        gender: userProfile.patient?.gender || '',
-        weight: userProfile.patient?.weight || '',
-        height: userProfile.patient?.height || '',
-        address: userProfile.patient?.address || '',
-        city: userProfile.patient?.city || '',
-        country: userProfile.patient?.country || '',
-        bloodType: userProfile.patient?.bloodType || '',
-        allergies: userProfile.patient?.allergies || '',
-      });
+        imageUrl: userProfile.image_url || '',
+        phone: patientData?.phone || '',
+        birthDate: patientData?.birthDate ? new Date(patientData.birthDate).toISOString().split('T')[0] : '',
+        gender: patientData?.gender || '',
+        weight: patientData?.weight?.toString() || '',
+        height: patientData?.height?.toString() || '',
+        address: patientData?.address || '',
+        city: patientData?.city || '',
+        country: patientData?.country || '',
+        bloodType: patientData?.bloodType || '',
+        allergies: patientData?.allergies || '',
+      };
+
+      setFormData(newFormData);
+      initialDataRef.current = { ...newFormData };
       lastProfileId.current = userProfile.id;
     }
   }, [userProfile]);
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-20 text-center">
+        <Loader2 className="animate-spin text-primary mb-4" size={40} />
+        <h3 className="text-lg font-bold text-secondary">Cargando perfil...</h3>
+        <p className="text-gray-500 text-sm mt-2">Estamos recoverando tus datos de forma segura.</p>
+      </div>
+    );
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center bg-red-50 rounded-3xl border border-red-100 animate-in fade-in zoom-in duration-300">
+        <AlertCircle className="text-red-500 mb-4" size={48} />
+        <h3 className="text-xl font-bold text-red-700">Sesión no detectada</h3>
+        <p className="text-red-600/70 text-sm mt-2 mb-6 max-w-xs">
+          Para garantizar la seguridad de tus datos médicos, necesitamos que estés autenticado.
+        </p>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <Button label="Reiniciar Sesión" onClick={refreshSession} variant="primary" fullWidth />
+          <Button label="Ir al Login" onClick={signOut} variant="outline" fullWidth />
+        </div>
+      </div>
+    );
+  }
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,7 +184,7 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     if (!file.type.startsWith('image/')) {
       setMessage({ type: 'error', text: 'Solo se permiten imágenes' });
@@ -98,19 +200,12 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
     setMessage(null);
 
     try {
-      // 1. Verificar Sesión
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) throw new Error('AUTH_SESSION_EXPIRED');
-
       const fileExt = file.name.split('.').pop();
-      const fileName = `avatar-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      const fileName = `profile.${fileExt}`;
+      const filePath = `avatars/${user.id}/${fileName}`;
       const bucketName = 'profiles';
 
-      console.log(`[DEBUG] Subiendo avatar de paciente a: ${filePath}`);
-
-      // 2. Subida a Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -119,45 +214,32 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
 
       if (uploadError) throw uploadError;
 
-      // 3. Obtener URL Pública
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
 
-      // 4. Actualizar estado local
-      setFormData(prev => ({ ...prev, imageUrl: publicUrl }));
-
-      // 5. Persistir en Base de Datos (Estrategia Frontend-first)
       const { error: dbError } = await supabase
         .from('Profile')
-        .update({ image_url: publicUrl })
+        .update({ 
+          image_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user.id);
 
       if (dbError) throw dbError;
 
-      // 6. Sincronización con Backend (Opcional)
-      try {
-        const token = localStorage.getItem('token');
-        await fetch('/api/users/update-profile', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ imageUrl: publicUrl })
-        });
-      } catch (e) {}
-
+      setFormData(prev => ({ ...prev, imageUrl: publicUrl }));
+      if (initialDataRef.current) {
+        initialDataRef.current.imageUrl = publicUrl;
+      }
+      
+      await refreshProfile();
       if (onUpdate) onUpdate();
       setMessage({ type: 'success', text: 'Foto actualizada correctamente' });
+
     } catch (err: any) {
-      console.error('[CRITICAL] Error en subida de paciente:', err);
-      const message = err.message || '';
-      if (message === 'AUTH_SESSION_EXPIRED') {
-        setMessage({ type: 'error', text: 'Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.' });
-      } else {
-        setMessage({ type: 'error', text: `Error de subida: ${message}` });
-      }
+      console.error('[PROFILE_IMG_FAIL]', err);
+      setMessage({ type: 'error', text: err.message || 'Error en la subida' });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -169,43 +251,119 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
     setLoading(true);
     setMessage(null);
 
+    if (!initialDataRef.current) {
+      setMessage({ type: 'error', text: 'Error: Datos iniciales no cargados. Recarga la página.' });
+      setLoading(false);
+      return;
+    }
+
+    const initial = initialDataRef.current;
+    
+    const profileFieldsToCheck = ['name', 'surname'];
+    const patientFieldsToCheck = ['phone', 'birthDate', 'gender', 'weight', 'height', 'address', 'city', 'country', 'bloodType', 'allergies'];
+    
+    const profileUpdates: any = {};
+    profileFieldsToCheck.forEach(field => {
+      const key = field as keyof FormData;
+      if (formData[key] !== initial[key]) {
+        profileUpdates[field] = formData[key] || null;
+      }
+    });
+
+    const patientUpdates: any = {};
+    patientFieldsToCheck.forEach(field => {
+      const key = field as keyof FormData;
+      if (formData[key] !== initial[key]) {
+        let dbField = field;
+        // The columns are birthDate and bloodType (as seen in Prisma/Postgres)
+        
+        if (field === 'weight' || field === 'height') {
+          patientUpdates[dbField] = formData[key] ? parseFloat(formData[key]) : null;
+        } else {
+          patientUpdates[dbField] = formData[key] || null;
+        }
+      }
+    });
+
+    console.log('[ProfileDetails] Enviando a Profile:', profileUpdates);
+    console.log('[ProfileDetails] Enviando a Patient:', patientUpdates);
+
     try {
-      const response = await fetch('/api/users/update-profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(formData)
-      });
-      
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        console.error('Error parseando JSON:', text);
-        throw new Error('Error de servidor (Respuesta no es JSON)');
+      let profileUpdated = false;
+      let patientUpdated = false;
+
+      if (Object.keys(profileUpdates).length > 0) {
+        const { error: profileError } = await supabase
+          .from('Profile')
+          .update(profileUpdates)
+          .eq('id', user.id);
+        
+        if (profileError) {
+          console.error('[ProfileDetails] Profile update error:', profileError);
+          throw new Error(`Error al actualizar perfil: ${profileError.message}`);
+        }
+        profileUpdated = true;
       }
 
-      if (data.success) {
-        setMessage({ type: 'success', text: 'Perfil actualizado correctamente' });
-        if (onUpdate) onUpdate();
-      } else {
-        throw new Error(data.error || 'Error al guardar cambios');
+      if (Object.keys(patientUpdates).length > 0) {
+        // En lugar de update directo, intentamos verificar si existe o usamos rpc/upsert
+        // Pero como estamos con supabase-js, intentamos update y vemos si falló por no existir
+        const { data: existingPatient } = await supabase
+          .from('Patient')
+          .select('id')
+          .eq('profile_id', user.id)
+          .single();
+
+        if (existingPatient) {
+          const { error: patientError } = await supabase
+            .from('Patient')
+            .update(patientUpdates)
+            .eq('profile_id', user.id);
+          
+          if (patientError) {
+            console.error('[ProfileDetails] Patient update error:', patientError);
+            throw new Error(`Error al actualizar datos médicos: ${patientError.message}`);
+          }
+          patientUpdated = true;
+        } else {
+          console.log('[ProfileDetails] Patient record not found, creating...');
+          const { error: insertError } = await supabase
+            .from('Patient')
+            .insert({ ...patientUpdates, profile_id: user.id });
+          
+          if (insertError) {
+            console.error('[ProfileDetails] Patient insert error:', insertError);
+            throw new Error(`Error al crear datos médicos: ${insertError.message}`);
+          }
+          patientUpdated = true;
+        }
       }
+
+      if (!profileUpdated && !patientUpdated) {
+        setMessage({ type: 'success', text: 'No hay cambios para guardar.' });
+        setLoading(false);
+        return;
+      }
+
+      console.log('[ProfileDetails] Guardado exitoso, recargando datos...');
+      
+      await fetchProfileData();
+      await refreshProfile();
+      if (onUpdate) onUpdate();
+      
+      setMessage({ type: 'success', text: 'Perfil actualizado correctamente' });
+      
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      console.error('[ProfileDetails] Error guardando:', err);
+      setMessage({ type: 'error', text: err.message || 'Error al guardar cambios. Verifica tu conexión.' });
     } finally {
       setLoading(false);
-      // Ocultar mensaje de éxito tras 3 segundos
       setTimeout(() => setMessage(null), 3000);
     }
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Photo Section */}
       <div className="flex flex-col items-center gap-4 py-2">
         <div className="relative group cursor-pointer" onClick={handleImageClick}>
            <Avatar src={formData.imageUrl} alt={formData.name} size="xl" />
@@ -213,7 +371,7 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
               {uploading ? <Loader2 className="text-white animate-spin" /> : <Camera className="text-white" />}
            </div>
            <button 
-            className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full border-2 border-white shadow-lg"
+            className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full border-2 border-white shadow-lg active:scale-90 transition-transform"
             type="button"
            >
              <Camera size={14} />
@@ -226,22 +384,22 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
             accept="image/*" 
             onChange={handleFileChange} 
         />
-        <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">Toca para cambiar foto</p>
+        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Toca para cambiar foto</p>
       </div>
 
       {message && (
-        <div className={`p-3 rounded-xl flex items-center gap-3 text-sm animate-in slide-in-from-top-1 ${
+        <div className={`p-4 rounded-2xl flex items-center gap-3 text-sm animate-in slide-in-from-top-1 ${
           message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'
         }`}>
-          {message.type === 'success' ? <Check size={18} /> : <AlertCircle size={18} />}
-          {message.text}
+          {message.type === 'success' ? <Check size={20} /> : <AlertCircle size={20} />}
+          <span className="font-medium">{message.text}</span>
         </div>
       )}
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
-            <h3 className="text-sm font-bold text-primary flex items-center gap-2 px-1">
-                <User size={16} /> Información Personal
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 px-1">
+                <User size={14} /> Información Personal
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                <Input 
@@ -257,7 +415,6 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
                  name="surname"
                  value={formData.surname} 
                  onChange={handleChange}
-                 placeholder="Pérez"
                  icon={<User size={18} />}
                />
             </div>
@@ -266,11 +423,11 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
                 label="Correo Electrónico (Principal)" 
                 value={formData.email} 
                 readOnly
-                className="bg-blue-50/30 text-gray-500 font-medium cursor-not-allowed border-blue-50"
-                icon={<Mail size={18} className="text-primary" />} 
+                className="bg-gray-50 text-gray-400"
+                icon={<Mail size={18} />} 
             />
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input 
                     label="Fecha de Nacimiento" 
                     name="birthDate"
@@ -286,20 +443,21 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
                     className="bg-gray-50 text-gray-400"
                     icon={<Activity size={18} />} 
                 />
-                <div>
-                  <label className="block text-sm font-bold text-gray-text mb-2 px-1">Género</label>
-                  <select 
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="w-full px-5 py-4 rounded-2xl border-none bg-gray-bg text-text-main shadow-neo-elevated focus:shadow-neo-sunken focus:outline-none transition-all duration-300 text-sm appearance-none"
-                  >
-                    <option value="">Selecciona...</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Femenino">Femenino</option>
-                    <option value="Otro">Otro/Prefiero no decir</option>
-                  </select>
-                </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-bold text-gray-text mb-2 px-1">Género</label>
+              <select 
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className="w-full px-5 py-4 rounded-2xl border-none bg-gray-bg text-text-main shadow-neo-elevated focus:shadow-neo-sunken focus:outline-none transition-all duration-300 text-sm appearance-none"
+              >
+                <option value="">Selecciona...</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Otro">Otro/Prefiero no decir</option>
+              </select>
             </div>
 
             <Input 
@@ -307,16 +465,15 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
                 name="phone"
                 value={formData.phone} 
                 onChange={handleChange}
-                placeholder="+58 412 0000000"
                 icon={<Phone size={18} />} 
             />
         </div>
 
         <div className="space-y-4">
-            <h3 className="text-sm font-bold text-primary flex items-center gap-2 px-1">
-                <Activity size={16} /> Datos Clínicos
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 px-1">
+                <Activity size={14} /> Datos Clínicos
             </h3>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input 
                 label="Altura (cm)" 
                 name="height"
@@ -333,6 +490,9 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
                 onChange={handleChange}
                 icon={<Weight size={18} />} 
               />
+            </div>
+            
+            <div className="space-y-4">
               <div>
                   <label className="block text-sm font-bold text-gray-text mb-2 px-1">Grupo Sanguíneo</label>
                   <select 
@@ -352,20 +512,20 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
                     <option value="AB-">AB-</option>
                   </select>
               </div>
+              <Input 
+                  label="Alergias / Condiciones" 
+                  name="allergies"
+                  value={formData.allergies} 
+                  onChange={handleChange}
+                  placeholder="Ej. Penicilina, Asma..."
+                  icon={<Droplet size={18} />} 
+              />
             </div>
-            <Input 
-                label="Alergias / Condiciones" 
-                name="allergies"
-                value={formData.allergies} 
-                onChange={handleChange}
-                placeholder="Ej. Penicilina, Asma..."
-                icon={<Droplet size={18} />} 
-            />
         </div>
 
         <div className="space-y-4">
-            <h3 className="text-sm font-bold text-primary flex items-center gap-2 px-1">
-                <MapPin size={16} /> Ubicación
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 px-1">
+                <MapPin size={14} /> Ubicación
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input 
@@ -392,14 +552,14 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ userProfile, onU
             />
         </div>
 
-        <div className="pt-4 sticky bottom-0 bg-neutral py-4 border-t border-gray-100 flex gap-3">
+        <div className="pt-4 sticky bottom-0 bg-white/80 backdrop-blur-md py-4 border-t border-gray-100 flex gap-3">
           <Button 
             label={loading ? "Guardando..." : "Guardar Cambios"} 
             fullWidth 
             variant="primary" 
             type="submit"
             disabled={loading || uploading}
-            icon={loading ? Loader2 : undefined}
+            icon={loading ? Loader2 : Check}
           />
         </div>
       </form>

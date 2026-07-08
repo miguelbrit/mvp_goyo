@@ -2,138 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { Filter, ChevronLeft, Search, MapPin, X } from 'lucide-react';
 import { DoctorCard } from '../components/DoctorCard';
 import { Article, Doctor } from '../types';
-import { supabase } from '../supabase';
 import { BottomNav } from '../components/BottomNav';
 import { Pagination } from '../components/Pagination';
 import { Carousel, CarouselItem } from '../components/Carousel';
 import { SuggestedArticles } from '../components/SuggestedArticles';
+import { ArticleCarousel } from '../components/ArticleCarousel';
+import { mockDoctors } from '../data/mockData';
 
-// Dummy Data
-export const DOCTORS_DATA: Doctor[] = [
-  {
-    id: '1',
-    name: 'Dr. Pedro León',
-    specialty: 'Cardiólogo',
-    location: 'Caracas',
-    distance: '2.5 km',
-    rating: 4.5,
-    reviews: 84,
-    price: 80,
-    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=300&h=300',
-    nextAvailable: 'Hoy, 3:00 PM',
-    about: 'Especialista en salud cardiovascular con enfoque en prevención y tratamiento de hipertensión. Egresado de la UCV con postgrado en España.',
-    experience: 12,
-    patients: 1500,
-    isFeatured: true
-  },
-  {
-    id: '2',
-    name: 'Dra. Lucia Mendez',
-    specialty: 'Pediatra',
-    location: 'Zulia',
-    distance: '5.0 km',
-    rating: 4.7,
-    reviews: 120,
-    price: 60,
-    image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300&h=300',
-    nextAvailable: 'Mañana, 9:00 AM',
-    about: 'Atención integral para niños y adolescentes. Experta en desarrollo infantil y nutrición pediátrica.',
-    experience: 8,
-    patients: 950
-  },
-  {
-    id: '3',
-    name: 'Dr. Julian Lopez',
-    specialty: 'Nutricionista',
-    location: 'Bolivar',
-    distance: '1.8 km',
-    rating: 4.3,
-    reviews: 45,
-    price: 45,
-    image: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=300&h=300',
-    nextAvailable: 'Hoy, 5:00 PM',
-    about: 'Planes nutricionales personalizados para control de peso, diabetes y rendimiento deportivo.',
-    experience: 5,
-    patients: 400
-  },
-  {
-    id: '4',
-    name: 'Dra. Marisela Rodriguez',
-    specialty: 'Ginecólogo',
-    location: 'Lara',
-    distance: '3.2 km',
-    rating: 4.9,
-    reviews: 210,
-    price: 90,
-    image: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=300&h=300',
-    nextAvailable: 'Jueves, 10:00 AM',
-    about: 'Ginecología y obstetricia. Control prenatal, planificación familiar y cirugía laparoscópica.',
-    experience: 15,
-    patients: 3200,
-    isFeatured: true
-  },
-  {
-    id: '5',
-    name: 'Dr. Jon Snow',
-    specialty: 'Neurólogo',
-    location: 'Sucre',
-    distance: '3.0 km',
-    rating: 4.3,
-    reviews: 56,
-    price: 90,
-    image: '/imagenes/jon_snow.png',
-    nextAvailable: 'Mañana, 4:00 PM',
-    about: 'Especialista en trastornos del sistema nervioso central y periférico. Experiencia en tratamiento de migrañas crónicas y epilepsia.',
-    experience: 7,
-    patients: 600
-  },
-  {
-    id: '6',
-    name: 'Dra. Luisa Laine',
-    specialty: 'Hematólogo',
-    location: 'Mérida',
-    distance: '1.5 km',
-    rating: 4.9,
-    reviews: 230,
-    price: 75,
-    image: 'https://images.unsplash.com/photo-1527613426441-4da17471b66d?auto=format&fit=crop&q=80&w=300&h=300',
-    nextAvailable: 'Hoy, 11:00 AM',
-    about: 'Experta en enfermedades de la sangre. Atención dedicada a pacientes con anemia y trastornos de coagulación.',
-    experience: 20,
-    patients: 4500,
-    isFeatured: true
-  },
-  {
-    id: '7',
-    name: 'Dr. Tony Stark',
-    specialty: 'Neumonólogo',
-    location: 'Aragua',
-    distance: '4.2 km',
-    rating: 4.6,
-    reviews: 88,
-    price: 120,
-    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=300&h=300',
-    nextAvailable: 'Jueves, 2:00 PM',
-    about: 'Especialista en salud respiratoria y tecnología médica aplicada. Tratamiento avanzado para asma, EPOC y recuperación post-COVID.',
-    experience: 15,
-    patients: 2100
-  },
-  {
-    id: '8',
-    name: 'Dra. Yecenia Black',
-    specialty: 'Endocrinólogo',
-    location: 'Anzoátegui',
-    distance: '2.8 km',
-    rating: 4.5,
-    reviews: 110,
-    price: 85,
-    image: '/imagenes/yecenia_black.jpg',
-    nextAvailable: 'Viernes, 9:00 AM',
-    about: 'Atención especializada en diabetes, tiroides y trastornos hormonales. Enfoque integral y personalizado para el bienestar metabólico.',
-    experience: 10,
-    patients: 1200
-  }
-];
+const MOCK_DOCTORS: Doctor[] = mockDoctors.map(doc => ({
+  id: String(doc.id),
+  name: doc.name,
+  specialty: doc.specialty,
+  location: doc.city,
+  distance: '--',
+  rating: doc.rating,
+  reviews: doc.reviews,
+  price: 50,
+  image: doc.image,
+  nextAvailable: 'Disponible',
+  isFeatured: doc.rating >= 4.8,
+  about: doc.bio,
+  experience: doc.experience,
+  patients: doc.patients
+}));
 
 // Banner Data for Doctors
 const DOCTOR_BANNERS: CarouselItem[] = [
@@ -172,113 +63,10 @@ export const DoctorListScreen: React.FC<DoctorListScreenProps> = ({
 }) => {
   const [showFilters, setShowFilters] = useState(initialOpenFilters);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
-  // Filter States
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>(initialSpecialty);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [minRating, setMinRating] = useState<number>(0);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchDoctors();
-
-    // REALTIME SUBSCRIPTION: Listen for changes in Doctor and Profile tables
-    // to ensure changes (photo, specialty, bio) reflect instantly.
-    console.log("[SYNC] Enabling Realtime subscriptions for Doctor Directory...");
-    
-    const doctorChannel = supabase
-      .channel('directory-sync')
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'Doctor' 
-      }, (payload) => {
-        console.log("[SYNC] Doctor profile data updated:", payload.new.id);
-        // We could re-fetch all, but for a smoother UX we update the specific item
-        // or trigger a targeted re-fetch if needed. Here we trigger a refresh to ensure joins are correct.
-        fetchDoctors();
-      })
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'Profile' 
-      }, (payload) => {
-        console.log("[SYNC] User profile (name/image) updated:", payload.new.id);
-        fetchDoctors();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(doctorChannel);
-    };
-  }, []);
-
-  const fetchDoctors = async () => {
-    try {
-      setLoading(true);
-      const cacheBuster = new Date().getTime();
-      console.log(`[DEBUG] Syncing doctors directory (Cache-Buster: ${cacheBuster})`);
-      
-      // Explicit selection of all relevant fields including joined Profile data.
-      // We use the exact column names from the database (image_url, etc.)
-      const { data: rawData, error } = await supabase
-        .from('Doctor')
-        .select(`
-          id,
-          specialty,
-          bio,
-          consultationPrice,
-          experienceYears,
-          city,
-          address,
-          status,
-          profile:Profile (
-            id,
-            name,
-            surname,
-            image_url
-          )
-        `)
-        .or('status.eq.APPROVED,status.eq.VERIFIED');
-
-      if (error) throw error;
-
-      if (rawData && Array.isArray(rawData)) {
-        const mappedDoctors = rawData.map((d: any) => ({
-          id: d.id,
-          name: `${d.profile?.name || ''} ${d.profile?.surname || ''}`.trim() || 'Médico',
-          specialty: d.specialty || 'General',
-          location: d.city || d.profile?.city || 'Venezuela',
-          distance: d.address ? 'Presencial' : 'Telemedicina',
-          rating: 5.0, // Default for new doctors
-          reviews: 0,
-          price: d.consultationPrice || 0,
-          // Removing the default placeholder. If the doctor hasn't uploaded a photo, 
-          // we pass null to allow the UI to render a silhouette/icon.
-          image: d.profile?.image_url 
-            ? `${d.profile.image_url}${d.profile.image_url.includes('?') ? '&' : '?'}t=${cacheBuster}` 
-            : null,
-          nextAvailable: (d.status === 'APPROVED' || d.status === 'VERIFIED') ? 'Disponible' : 'En Verificación',
-          about: d.bio || `Especialista con ${d.experienceYears || 0} años de experiencia en ${d.specialty || 'medicina'}.`,
-          experience: d.experienceYears || 0,
-          patients: 0,
-          isFeatured: (d.status === 'APPROVED' || d.status === 'VERIFIED'),
-          availability: d.availability || []
-        }));
-        
-        console.log(`[SYNC] ${mappedDoctors.length} doctors updated in state. Imágenes:`, 
-          mappedDoctors.map(m => m.image ? 'URL' : 'NULL'));
-        setDoctors(mappedDoctors);
-      } else {
-        setDoctors([]);
-      }
-    } catch (err: any) {
-      console.error("Error fetching doctors:", err.message);
-      setDoctors([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [doctors] = useState<Doctor[]>(MOCK_DOCTORS);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -292,25 +80,21 @@ export const DoctorListScreen: React.FC<DoctorListScreenProps> = ({
   // Filter Options
   const specialties = [
     'Todos', 
-    'Cardiólogo', 
-    'Pediatra', 
-    'Nutricionista', 
-    'Ginecólogo', 
-    'Neurólogo', 
-    'Hematólogo', 
-    'Neumonólogo', 
-    'Endocrinólogo'
+    'Cardiología', 
+    'Ginecología', 
+    'Pediatría', 
+    'Dermatología', 
+    'Traumatología', 
+    'Medicina Interna'
   ];
   const locations = [
     'Todos', 
     'Caracas', 
-    'Zulia', 
-    'Bolivar', 
-    'Lara', 
-    'Sucre', 
     'Mérida', 
-    'Aragua', 
-    'Anzoátegui'
+    'Maracaibo', 
+    'San Cristóbal', 
+    'Valencia', 
+    'Maracay'
   ];
 
   // Apply filters
@@ -340,7 +124,7 @@ export const DoctorListScreen: React.FC<DoctorListScreenProps> = ({
           <button onClick={onBack} className="p-2 hover:bg-gray-bg rounded-full text-gray-light">
             <ChevronLeft size={24} />
           </button>
-          <h1 className="font-heading font-bold text-xl text-text-main">Especialistas</h1>
+          <h1 className="font-heading font-bold text-xl text-text-main">Médicos Disponibles</h1>
           <button 
             onClick={() => setShowFilters(true)}
             className="ml-auto p-2 bg-gray-bg rounded-full text-gray-light hover:bg-primary/10 hover:text-primary transition-colors relative"
@@ -419,8 +203,8 @@ export const DoctorListScreen: React.FC<DoctorListScreenProps> = ({
           </div>
         )}
 
-        {/* SUGGESTED ARTICLES BANNER */}
-        <SuggestedArticles section="doctors" onArticleClick={onNavigateToArticle} />
+         {/* SUGGESTED ARTICLES BANNER */}
+         <ArticleCarousel title="Artículos de Opinión" autoSlide={true} onArticleClick={onNavigateToArticle} />
         
       </div>
 

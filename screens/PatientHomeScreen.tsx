@@ -19,6 +19,7 @@ interface PatientHomeScreenProps {
   onNavigateToPreOp: () => void;
   onNavigate: (tab: string) => void; // For BottomNav
   onSelectArticle: (article: Article) => void;
+  onNavigateToMasterDashboard?: () => void;
 }
 
 export const PatientHomeScreen: React.FC<PatientHomeScreenProps> = ({ 
@@ -31,7 +32,8 @@ export const PatientHomeScreen: React.FC<PatientHomeScreenProps> = ({
   onNavigateToPathologies,
   onNavigateToPreOp,
   onNavigate,
-  onSelectArticle
+  onSelectArticle,
+  onNavigateToMasterDashboard
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -113,9 +115,19 @@ export const PatientHomeScreen: React.FC<PatientHomeScreenProps> = ({
       {/* Header */}
       <header className="bg-card px-6 pt-6 pb-4 rounded-b-3xl shadow-soft sticky top-0 z-30">
         <div className="flex justify-between items-center mb-2">
-          <h1 className="font-heading text-lg text-gray-text truncate max-w-[70%]">
-            Hola, <span className="font-bold text-secondary">{userName}</span>
-          </h1>
+          <div>
+            <h1 className="font-heading text-lg text-gray-text truncate max-w-[70%]">
+              Hola, <span className="font-bold text-secondary">{userName}</span>
+            </h1>
+            {onNavigateToMasterDashboard && (
+              <button
+                onClick={onNavigateToMasterDashboard}
+                className="text-xs font-bold text-[#0D9488] hover:text-[#0D9488]/80 underline underline-offset-2 mt-0.5"
+              >
+                Master Dashboard
+              </button>
+            )}
+          </div>
           <button onClick={() => setIsSidebarOpen(true)} className="flex-shrink-0">
             <Avatar 
               src={userProfile?.imageUrl} 
@@ -135,37 +147,39 @@ export const PatientHomeScreen: React.FC<PatientHomeScreenProps> = ({
         
         {/* Health Overview Card (Linked to Dr. Goyo AI) */}
 
-        {/* Chat Section */}
-        <section>
-          <div className="bg-card rounded-2xl shadow-lg shadow-primary/5 p-2 border border-border-main flex items-center gap-2">
-             <div className="flex-1 bg-gray-bg rounded-xl px-4 py-2.5 flex items-center">
-                <input 
-                  type="text"
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-text-main placeholder:text-gray-light text-sm"
-                  placeholder="Escríbele a Dr. Goyo qué te ocurre..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleChatInputSubmit()}
-                />
+         {/* Chat Section */}
+         <section>
+           <div className="w-full min-h-[200px] bg-[#0D9488] rounded-3xl p-6 shadow-lg shadow-teal-900/20 flex flex-col justify-between">
+             <div className="text-white font-medium mb-4">
+               👋 Hola, bienvenido a Dr. Goyo. ¿Qué molestia tienes hoy?
              </div>
-             
-             {message.length > 0 ? (
-                <button 
-                  onClick={handleChatInputSubmit}
-                  className="p-2.5 bg-primary text-neutral rounded-xl shadow-lg shadow-primary/30 transition-all hover:scale-105 active:scale-95"
-                >
+             <div className="relative">
+               <input 
+                 type="text" 
+                 placeholder="Escribe aquí tus síntomas..." 
+                 className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
+                 value={message}
+                 onChange={(e) => setMessage(e.target.value)}
+                 onKeyDown={(e) => e.key === 'Enter' && handleChatInputSubmit()}
+               />
+               {message.length > 0 ? (
+                 <button 
+                   onClick={handleChatInputSubmit}
+                   className="absolute right-2 top-2 p-1.5 bg-white rounded-lg text-[#0D9488] hover:bg-gray-100 transition-all"
+                 >
                    <Send size={18} />
-                </button>
-             ) : (
-                <button 
-                  onClick={() => onNavigateToChat()}
-                  className="p-2.5 bg-gray-bg text-gray-light rounded-xl hover:bg-gray-bg/80 transition-all active:scale-95"
-                >
+                 </button>
+               ) : (
+                 <button 
+                   onClick={() => onNavigateToChat()}
+                   className="absolute right-2 top-2 p-1.5 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-all"
+                 >
                    <Mic size={18} />
-                </button>
-             )}
-          </div>
-        </section>
+                 </button>
+               )}
+             </div>
+           </div>
+         </section>
 
         {/* Carousel Banner */}
         <section>
@@ -218,16 +232,14 @@ export const PatientHomeScreen: React.FC<PatientHomeScreenProps> = ({
         </section>
         */}
 
-        {/* Recommended Readings Section */}
-        <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-           <div className="flex items-center justify-between mb-2">
-              <h2 className="font-heading font-semibold text-text-main text-lg">Lecturas Recomendadas</h2>
-           </div>
-           
-           <div className="space-y-2 -mx-4">
-              <SuggestedArticles section={"general" as any} onArticleClick={onSelectArticle} />
-           </div>
-        </section>
+         {/* Recommended Readings Section */}
+         <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+            <div className="flex items-center justify-between mb-2">
+               <h2 className="font-heading font-semibold text-text-main text-lg">Artículos de Opinión</h2>
+            </div>
+            
+               <SuggestedArticles section={"general" as any} onArticleClick={onSelectArticle} autoSlide={true} />
+         </section>
 
       </main>
 

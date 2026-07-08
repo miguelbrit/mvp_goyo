@@ -1,22 +1,26 @@
 import React from 'react';
 import { ChevronLeft, MessageCircle, MapPin, Clock, FlaskConical, Info } from 'lucide-react';
-import { Laboratory } from '../types';
+import { Laboratory, Article } from '../types';
 import { Button } from '../components/Button';
 import { Rating } from '../components/Rating';
 import { BottomNav } from '../components/BottomNav';
+import { SuggestedArticles } from '../components/SuggestedArticles';
+import { ArticleCarousel } from '../components/ArticleCarousel';
 
 interface LabProfileScreenProps {
   lab: Laboratory;
   onBack: () => void;
   onChat: () => void;
   onNavigate: (tab: string) => void;
+  onArticleClick?: (article: Article) => void;
 }
 
 export const LabProfileScreen: React.FC<LabProfileScreenProps> = ({ 
   lab, 
   onBack, 
   onChat, 
-  onNavigate 
+  onNavigate,
+  onArticleClick
 }) => {
   return (
     // Increased padding-bottom to pb-48 (192px) to account for BottomNav (64px) + Fixed Action Bar (~90px) + Safe Area
@@ -103,6 +107,8 @@ export const LabProfileScreen: React.FC<LabProfileScreenProps> = ({
             </div>
          </div>
       </div>
+
+      <ArticleCarousel title="Artículos de Opinión" autoSlide={true} onArticleClick={onArticleClick} />
 
       {/* Action Bar - Shifted up to sit on top of BottomNav */}
       <div className="fixed bottom-[64px] left-0 w-full bg-card border-t border-border-main p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-40 transition-colors">

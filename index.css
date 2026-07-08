@@ -54,6 +54,14 @@
   }
 }
 
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Neomorphism Utilities */
 @utility shadow-neo-elevated {
   box-shadow: 

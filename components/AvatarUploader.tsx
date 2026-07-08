@@ -39,28 +39,28 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       return;
     }
 
-    setUploading(true);
-    setError(null);
+      setUploading(true);
+      setError(null);
 
-    try {
-      console.log(`[DEBUG] Iniciando subida para usuario (Prop): ${userId}`);
-      
-      // 1. Garantizar Sesión y UID real de Supabase Auth
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      let currentSession = (await supabase.auth.getSession()).data.session;
+      try {
+        // --- AUTENTICACIÓN RESILIENTE ---
+        const token = localStorage.getItem('token');
+        let authUserId = userId; // Fallback al ID pasado por props
 
-      if (!user || userError || !currentSession) {
-        console.warn("[WARN] Sesión no detectada, intentando refrescar...");
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError || !refreshData.session) {
-          throw new Error('AUTH_SESSION_EXPIRED');
+        if (token) {
+          try {
+            const { data: sessionData } = await supabase.auth.setSession({
+              access_token: token,
+              refresh_token: '', 
+            });
+            if (sessionData?.session?.user) {
+              authUserId = sessionData.session.user.id;
+              console.log("[AvatarUploader] Sesión sincronizada para:", authUserId);
+            }
+          } catch (sessionErr) {
+            console.warn("[AvatarUploader] Error no fatal al sincronizar sesión:", sessionErr);
+          }
         }
-        currentSession = refreshData.session;
-      }
-
-      // Usamos el ID del usuario de la sesión para la ruta (Garantiza match con RLS)
-      const authUserId = user?.id || currentSession?.user?.id;
-      if (!authUserId) throw new Error('No se pudo determinar el ID de usuario autenticado.');
 
       const fileExt = file.name.split('.').pop();
       const fileName = `avatar-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
@@ -112,11 +112,11 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
       } else {
         const { error } = await supabase
           .from('Profile')
-          .insert({ 
+          .insert({
             id: targetId, 
             image_url: publicUrl,
             name: userName,
-            email: currentSession?.user?.email || (targetId + "@placeholder.com")
+            email: (targetId + "@drgoyo-user.com") // Fallback de correo seguro
           });
         dbError = error;
       }
