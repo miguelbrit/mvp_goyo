@@ -73,8 +73,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuthMock();
   }, []);
 
-  const signIn = async () => {
-    return { error: null };
+  const signIn = async (email: string, password: string): Promise<{ error: any }> => {
+    const MOCK_USERS: Record<string, { password: string, role: string }> = {
+      'admin@drgoyo.com': { password: 'admin', role: 'admin' },
+      'doctor@drgoyo.com': { password: 'doctor', role: 'doctor' },
+      'patient@drgoyo.com': { password: 'patient', role: 'patient' },
+      'pharmacy@drgoyo.com': { password: 'pharmacy', role: 'pharmacy' },
+      'lab@drgoyo.com': { password: 'lab', role: 'lab' },
+    };
+
+    const userCredentials = MOCK_USERS[email.toLowerCase()];
+
+    if (userCredentials && userCredentials.password === password) {
+      localStorage.setItem('drgoyo_user_role', userCredentials.role);
+      initAuthMock(); // This will re-initialize the auth state with the new role
+      return { error: null };
+    }
+
+    return { 
+      error: { 
+        message: 'Credenciales inválidas. Por favor, intente de nuevo.' 
+      } 
+    };
   };
 
   const signOut = async () => {
